@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tic-Tac-Toe</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f9f9f7;
+      --surface: #f1f0eb;
+      --card: #ffffff;
+      --border: rgba(0,0,0,0.1);
+      --border-strong: rgba(0,0,0,0.22);
+      --text: #1a1a18;
+      --text-muted: #6b6b67;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --x-color: #4A6CF7;
+      --o-color: #E05555;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1c1c1a;
+        --surface: #252523;
+        --card: #2e2e2b;
+        --border: rgba(255,255,255,0.1);
+        --border-strong: rgba(255,255,255,0.22);
+        --text: #f0ede8;
+        --text-muted: #9a9a94;
+      }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2.5rem 1rem;
+    }
+    #app {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 380px;
+    }
+    h1 { font-size: 26px; font-weight: 600; letter-spacing: -.5px; margin-bottom: .25rem; }
+    #subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 1.75rem; }
+    #scoreboard { display: flex; gap: 10px; margin-bottom: 1.5rem; width: 100%; }
+    .score-card {
+      flex: 1; background: var(--surface); border: 0.5px solid var(--border);
+      border-radius: var(--radius-md); padding: .6rem .75rem; text-align: center;
+      transition: border-color .2s;
+    }
+    .score-card.active { border-color: var(--border-strong); }
+    .score-label { font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
+    .score-num { font-size: 24px; font-weight: 600; color: var(--text); }
+    .score-card.x-card .score-num { color: var(--x-color); }
+    .score-card.o-card .score-num { color: var(--o-color); }
+    .score-card.draw-card .score-num { color: var(--text-muted); }
+    #status {
+      font-size: 16px; font-weight: 500; min-height: 24px;
+      margin-bottom: 1.25rem; text-align: center; color: var(--text);
+    }
+    #board {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 8px; margin-bottom: 1.5rem; width: 100%;
+    }
+    .cell {
+      aspect-ratio: 1; background: var(--surface);
+      border: 0.5px solid var(--border); border-radius: var(--radius-md);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: min(10vw, 38px); font-weight: 500;
+      transition: background .15s, transform .1s, border-color .15s;
+      user-select: none;
+    }
+    .cell:hover:not(.taken) {
+      background: var(--card); border-color: var(--border-strong); transform: scale(1.04);
+    }
+    .cell.x { color: var(--x-color); }
+    .cell.o { color: var(--o-color); }
+    .cell.win {
+      background: rgba(74, 108, 247, 0.1); border-color: rgba(74,108,247,.5);
+      animation: winpulse .7s ease-in-out infinite;
+    }
+    .cell.win.o { background: rgba(224, 85, 85, 0.1); border-color: rgba(224,85,85,.5); }
+    .cell.taken { cursor: default; }
+    #controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+    button {
+      padding: .5rem 1.25rem; border: 0.5px solid var(--border-strong);
+      border-radius: var(--radius-md); background: transparent; color: var(--text);
+      font-size: 14px; cursor: pointer; transition: background .15s, transform .1s;
+    }
+    button:hover { background: var(--surface); }
+    button:active { transform: scale(.97); }
+    button.primary { background: var(--x-color); color: #fff; border-color: transparent; }
+    button.primary:hover { background: #3a5ce0; }
+    #mode-wrap {
+      margin-top: 1rem; font-size: 13px; color: var(--text-muted);
+      display: flex; align-items: center; gap: 6px; cursor: pointer;
+    }
+    #mode-wrap input { cursor: pointer; }
+    @keyframes pop {
+      0%   { transform: scale(.35); opacity: 0; }
+      60%  { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .pop { animation: pop .22s ease-out; }
+    @keyframes winpulse { 0%,100%{opacity:1} 50%{opacity:.55} }
+  </style>
+</head>
+<body>
+<div id="app">
+  <h1>Tic-Tac-Toe</h1>
+  <div id="subtitle">Player vs Player</div>
+
+  <div id="scoreboard">
+    <div class="score-card x-card active" id="card-x">
+      <div class="score-label">Player X</div>
+      <div class="score-num" id="score-x">0</div>
+    </div>
+    <div class="score-card draw-card" id="card-draw">
+      <div class="score-label">Draws</div>
+      <div class="score-num" id="score-draw">0</div>
+    </div>
+    <div class="score-card o-card" id="card-o">
+      <div class="score-label">Player O</div>
+      <div class="score-num" id="score-o">0</div>
+    </div>
+  </div>
+
+  <div id="status">Player X's turn</div>
+  <div id="board"></div>
+
+  <div id="controls">
+    <button class="primary" onclick="restart()">Restart</button>
+    <button onclick="resetScores()">Reset Scores</button>
+  </div>
+
+  <label id="mode-wrap">
+    <input type="checkbox" id="ai-toggle" onchange="toggleAI()">
+    Play vs Computer
+  </label>
+</div>
+
+<script>
+const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+let board, current, gameOver, vsAI = false, aiTimer;
+const scores = { x: 0, o: 0, d: 0 };
+
+/* --- Audio --- */
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let ctx;
+function beep(freq, dur, type = 'sine', vol = 0.15) {
+  try {
+    if (!ctx) ctx = new AudioCtx();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    o.start(); o.stop(ctx.currentTime + dur);
+  } catch(e) {}
+}
+function playClick() { beep(520, .08, 'triangle', .12); }
+function playWin()   { [523,659,784,1047].forEach((f,i) => setTimeout(() => beep(f, .15, 'sine', .15), i * 100)); }
+function playDraw()  { beep(330, .25, 'sawtooth', .07); setTimeout(() => beep(280, .35, 'sawtooth', .07), 200); }
+
+/* --- Game Logic --- */
+function toggleAI() {
+  vsAI = document.getElementById('ai-toggle').checked;
+  document.getElementById('subtitle').textContent = vsAI ? 'Player vs Computer' : 'Player vs Player';
+  restart();
+}
+
+function buildBoard() {
+  const el = document.getElementById('board');
+  el.innerHTML = '';
+  board.forEach((_, i) => {
+    const c = document.createElement('div');
+    c.className = 'cell'; c.id = 'c' + i;
+    c.onclick = () => play(i);
+    el.appendChild(c);
+  });
+}
+
+function restart() {
+  clearTimeout(aiTimer);
+  board = Array(9).fill(''); current = 'X'; gameOver = false;
+  buildBoard();
+  setStatus("Player X's turn");
+  document.getElementById('card-x').classList.add('active');
+  document.getElementById('card-o').classList.remove('active');
+  document.getElementById('card-draw').classList.remove('active');
+}
+
+function resetScores() { scores.x = scores.o = scores.d = 0; updateScores(); restart(); }
+
+function updateScores() {
+  document.getElementById('score-x').textContent = scores.x;
+  document.getElementById('score-o').textContent = scores.o;
+  document.getElementById('score-draw').textContent = scores.d;
+}
+
+function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
+function play(i) {
+  if (gameOver || board[i]) return;
+  if (vsAI && current === 'O') return;
+  mark(i);
+}
+
+function mark(i) {
+  board[i] = current;
+  playClick();
+  const cell = document.getElementById('c' + i);
+  cell.textContent = current === 'X' ? '✕' : '○';
+  cell.classList.add(current.toLowerCase(), 'taken', 'pop');
+
+  const win = checkWin();
+  if (win) { endGame(win, false); return; }
+  if (board.every(c => c)) { endGame(null, true); return; }
+
+  current = current === 'X' ? 'O' : 'X';
+  document.getElementById('card-x').classList.toggle('active', current === 'X');
+  document.getElementById('card-o').classList.toggle('active', current === 'O');
+  const label = vsAI && current === 'O' ? 'Computer is thinking…' : `Player ${current}'s turn`;
+  setStatus(label);
+  if (vsAI && current === 'O' && !gameOver) aiTimer = setTimeout(aiMove, 480);
+}
+
+function aiMove() {
+  const move = getBestMove();
+  if (move !== -1) mark(move);
+}
+
+function getBestMove() {
+  const empty = board.map((v, i) => v ? null : i).filter(v => v !== null);
+  // win
+  for (const i of empty) { board[i] = 'O'; if (checkWin()) { board[i] = ''; return i; } board[i] = ''; }
+  // block
+  for (const i of empty) { board[i] = 'X'; if (checkWin()) { board[i] = ''; return i; } board[i] = ''; }
+  // center
+  if (board[4] === '') return 4;
+  // corners
+  const corners = [0, 2, 6, 8].filter(i => board[i] === '');
+  if (corners.length) return corners[Math.floor(Math.random() * corners.length)];
+  return empty[Math.floor(Math.random() * empty.length)] ?? -1;
+}
+
+function checkWin() {
+  return WINS.find(([a, b, c]) => board[a] && board[a] === board[b] && board[b] === board[c]) || null;
+}
+
+function endGame(win, draw) {
+  gameOver = true;
+  document.getElementById('card-x').classList.remove('active');
+  document.getElementById('card-o').classList.remove('active');
+  if (draw) {
+    playDraw(); scores.d++;
+    document.getElementById('card-draw').classList.add('active');
+    setStatus("It's a draw!");
+  } else {
+    playWin();
+    const winner = board[win[0]];
+    win.forEach(i => {
+      const c = document.getElementById('c' + i);
+      c.classList.remove('pop');
+      if (winner === 'o' || winner === 'O') c.classList.add('o');
+      c.classList.add('win');
+    });
+    if (winner === 'X') { scores.x++; document.getElementById('card-x').classList.add('active'); }
+    else                { scores.o++; document.getElementById('card-o').classList.add('active'); }
+    const label = vsAI && winner === 'O' ? 'Computer wins!' : vsAI && winner === 'X' ? 'You win! 🎉' : `Player ${winner} wins!`;
+    setStatus(label);
+  }
+  updateScores();
+}
+
+restart();
+</script>
+</body>
+</html>
